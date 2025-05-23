@@ -88,40 +88,40 @@ app.delete('/leaderboard/:username', async (req, res) => {
 });
 app.put('/leaderboard/rename', async (req, res) => {
   const { oldUsername, newUsername } = req.body;
-
+ console.log("Rename route hit with body:", req.body);
   if (!oldUsername || !newUsername) {
-    return res.status(400).json({ error: "Both oldUsername and newUsername are required" });
+    return res.status(400).json({ message: "Both oldUsername and newUsername are required" });
   }
 
   try {
-    // Start a transaction to ensure consistency
-    const conn = await pool.getConnection();
-    await conn.beginTransaction();
-
-    // Get the score of the old user
-    const [rows] = await conn.query('SELECT score FROM leaderboard WHERE username = ?', [oldUsername]);
-    if (rows.length === 0) {
-      await conn.rollback();
-      conn.release();
-      return res.status(404).json({ error: 'Old username not found' });
+    // Check if old username exists
+    const [oldRows] = await pool.query('SELECT * FROM leaderboard WHERE username = ?', [oldUsername]);
+    if (oldRows.length === 0) {
+      return res.status(404).json({ message: "Old username not found" });
     }
-    const score = rows[0].score;
 
-    // Insert new username with the same score and current timestamp
-    await conn.query('INSERT INTO leaderboard (username, score, created_at) VALUES (?, ?, NOW())', [newUsername, score]);
+    // Check if new username is already taken
+    const [newRows] = await pool.query('SELECT * FROM leaderboard WHERE username = ?', [newUsername]);
+    if (newRows.length > 0) {
+      return res.status(409).json({ message: "New username already taken" });
+    }
 
-    // Delete old username
-    await conn.query('DELETE FROM leaderboard WHERE username = ?', [oldUsername]);
+    // Copy old user's data to new username
+    await pool.query(
+      'INSERT INTO leaderboard (username, score, created_at) SELECT ?, score, created_at FROM leaderboard WHERE username = ?',
+      [newUsername, oldUsername]
+    );
 
-    await conn.commit();
-    conn.release();
+    // Delete the old username
+    await pool.query('DELETE FROM leaderboard WHERE username = ?', [oldUsername]);
 
-    res.status(200).json({ message: `Renamed ${oldUsername} to ${newUsername}` });
+    res.status(200).json({ message: "Username renamed successfully" });
   } catch (err) {
-    console.error('❗ Error renaming user:', err);
-    res.status(500).json({ error: 'Database error' });
+    console.error("Error renaming user:", err);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
+
 
 const PORT = process.env.PORT || 3000;
 
