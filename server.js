@@ -86,7 +86,7 @@ app.post("/score", async (req, res) => {
 
   try {
     const query = `
-  INSERT INTO leaderboard (username, score, created_at)
+    INSERT INTO leaderboard (username, score, created_at)
   VALUES (?, ?, NOW())
   ON DUPLICATE KEY UPDATE
     score = IF(VALUES(score) > score, VALUES(score), score),
