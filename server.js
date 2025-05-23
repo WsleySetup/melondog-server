@@ -30,8 +30,6 @@ async function initDb() {
   conn.release();
 }
 
-
-
 app.get('/', (req, res) => {
   res.send('Melondog Server is running!');
 });
@@ -70,6 +68,37 @@ app.post("/score", async (req, res) => {
     res.status(200).json({ message: "Score saved or updated" });
   } catch (err) {
     console.error("❗ Error saving score:", err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+// PUT /score - Update an existing score
+app.put("/score", async (req, res) => {
+  console.log("🛠️ Received score update:", req.body);
+
+  const { username, score } = req.body;
+
+  if (!username || typeof score !== "number") {
+    console.log("❌ Invalid update data:", req.body);
+    return res.status(400).json({ error: "Invalid data" });
+  }
+
+  try {
+    const query = `
+      UPDATE leaderboard
+      SET score = ?, created_at = NOW()
+      WHERE username = ?;
+    `;
+    const [result] = await pool.query(query, [score, username]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    console.log("✅ Score updated");
+    res.status(200).json({ message: "Score updated" });
+  } catch (err) {
+    console.error("❗ Error updating score:", err);
     res.status(500).json({ error: "Database error" });
   }
 });
