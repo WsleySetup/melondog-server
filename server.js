@@ -8,7 +8,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// dbConfig must be defined BEFORE initDb is called
 const dbConfig = {
   host: 'mysql-2bbc807a-melondogdb.j.aivencloud.com',
   port: 18629,
@@ -72,34 +71,19 @@ app.post("/score", async (req, res) => {
   }
 });
 
-// PUT /score - Update an existing score
-app.put("/score", async (req, res) => {
-  console.log("🛠️ Received score update:", req.body);
-
-  const { username, score } = req.body;
-
-  if (!username || typeof score !== "number") {
-    console.log("❌ Invalid update data:", req.body);
-    return res.status(400).json({ error: "Invalid data" });
-  }
+// 🔥 NEW: Delete a user from leaderboard
+app.delete('/leaderboard/:username', async (req, res) => {
+  const { username } = req.params;
 
   try {
-    const query = `
-      UPDATE leaderboard
-      SET score = ?, created_at = NOW()
-      WHERE username = ?;
-    `;
-    const [result] = await pool.query(query, [score, username]);
-
+    const [result] = await pool.query('DELETE FROM leaderboard WHERE username = ?', [username]);
     if (result.affectedRows === 0) {
-      return res.status(404).json({ error: "User not found" });
+      return res.status(404).json({ message: 'User not found' });
     }
-
-    console.log("✅ Score updated");
-    res.status(200).json({ message: "Score updated" });
+    res.status(200).json({ message: 'User deleted' });
   } catch (err) {
-    console.error("❗ Error updating score:", err);
-    res.status(500).json({ error: "Database error" });
+    console.error("❗ Error deleting user:", err);
+    res.status(500).json({ error: 'Database error' });
   }
 });
 
