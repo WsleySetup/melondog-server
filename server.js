@@ -86,6 +86,42 @@ app.delete('/leaderboard/:username', async (req, res) => {
     res.status(500).json({ error: 'Database error' });
   }
 });
+app.put('/leaderboard/rename', async (req, res) => {
+  const { oldUsername, newUsername } = req.body;
+
+  if (!oldUsername || !newUsername) {
+    return res.status(400).json({ error: "Both oldUsername and newUsername are required" });
+  }
+
+  try {
+    // Start a transaction to ensure consistency
+    const conn = await pool.getConnection();
+    await conn.beginTransaction();
+
+    // Get the score of the old user
+    const [rows] = await conn.query('SELECT score FROM leaderboard WHERE username = ?', [oldUsername]);
+    if (rows.length === 0) {
+      await conn.rollback();
+      conn.release();
+      return res.status(404).json({ error: 'Old username not found' });
+    }
+    const score = rows[0].score;
+
+    // Insert new username with the same score and current timestamp
+    await conn.query('INSERT INTO leaderboard (username, score, created_at) VALUES (?, ?, NOW())', [newUsername, score]);
+
+    // Delete old username
+    await conn.query('DELETE FROM leaderboard WHERE username = ?', [oldUsername]);
+
+    await conn.commit();
+    conn.release();
+
+    res.status(200).json({ message: `Renamed ${oldUsername} to ${newUsername}` });
+  } catch (err) {
+    console.error('❗ Error renaming user:', err);
+    res.status(500).json({ error: 'Database error' });
+  }
+});
 
 const PORT = process.env.PORT || 3000;
 
