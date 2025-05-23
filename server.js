@@ -21,10 +21,6 @@ const dbConfig = {
   }
 };
 
-app.get('/', (req, res) => {
-  res.send('Melondog Server is running!');
-});
-
 let pool;
 
 async function initDb() {
@@ -33,6 +29,12 @@ async function initDb() {
   console.log('DB Connected');
   conn.release();
 }
+
+
+
+app.get('/', (req, res) => {
+  res.send('Melondog Server is running!');
+});
 
 app.get('/leaderboard', async (req, res) => {
   try {
@@ -44,17 +46,31 @@ app.get('/leaderboard', async (req, res) => {
   }
 });
 
-app.post('/score', async (req, res) => {
+app.post("/score", async (req, res) => {
+  console.log("📥 Received score submission:", req.body);
+
   const { username, score } = req.body;
-  if (!username || typeof score !== 'number') {
-    return res.status(400).json({ error: 'Invalid data' });
+
+  if (!username || typeof score !== "number") {
+    console.log("❌ Invalid data:", req.body);
+    return res.status(400).json({ error: "Invalid data" });
   }
+
   try {
-    await pool.query('INSERT INTO leaderboard (username, score) VALUES (?, ?)', [username, score]);
-    res.json({ success: true });
+    const query = `
+      INSERT INTO leaderboard (username, score, created_at)
+      VALUES (?, ?, NOW())
+      ON DUPLICATE KEY UPDATE
+        score = IF(VALUES(score) > score, VALUES(score), score),
+        created_at = IF(VALUES(score) > score, NOW(), created_at);
+    `;
+    await pool.query(query, [username, score]);
+
+    console.log("✅ Score saved or updated");
+    res.status(200).json({ message: "Score saved or updated" });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'DB insert failed' });
+    console.error("❗ Error saving score:", err);
+    res.status(500).json({ error: "Database error" });
   }
 });
 
