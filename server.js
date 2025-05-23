@@ -118,16 +118,27 @@ app.post("/score", express.json(), (req, res) => {
   }
 
   // Save to DB
-  scoresCollection.insertOne({ username, score, date: new Date() })
-    .then(() => {
-      console.log("✅ Score saved successfully");
-      res.status(200).json({ message: "Score saved" });
-    })
-    .catch((err) => {
-      console.error("❗ Error saving score:", err);
-      res.status(500).json({ error: "Database error" });
-    });
+  app.post("/score", async (req, res) => {
+  console.log("📥 Received score submission:", req.body);
+
+  const { username, score } = req.body;
+
+  if (!username || typeof score !== "number") {
+    console.log("❌ Invalid data:", req.body);
+    return res.status(400).json({ error: "Invalid data" });
+  }
+
+  try {
+    const query = `INSERT INTO leaderboard (username, score, created_at) VALUES (?, ?, NOW())`;
+    await pool.query(query, [username, score]);
+    console.log("✅ Score saved successfully");
+    res.status(200).json({ message: "Score saved" });
+  } catch (err) {
+    console.error("❗ Error saving score:", err);
+    res.status(500).json({ error: "Database error" });
+  }
 });
+
 
 const PORT = process.env.PORT || 3000;
 
