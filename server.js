@@ -31,24 +31,24 @@ async function initDb() {
 }
 
 app.post('/update-username', async (req, res) => {
-  const { oldUsername, newUsername } = req.body;
+  const { userId, newUsername } = req.body;
 
-  if (!oldUsername || !newUsername) {
-    return res.status(400).json({ error: "Missing username values" });
+  if (!userId || !newUsername) {
+    return res.status(400).json({ error: "Missing userId or newUsername" });
   }
 
   try {
-    // Check if new username already exists
-    const [rows] = await pool.query("SELECT 1 FROM leaderboard WHERE username = ?", [newUsername]);
+    // Check if new username is already taken
+    const [rows] = await pool.query("SELECT * FROM leaderboard WHERE username = ?", [newUsername]);
     if (rows.length > 0) {
       return res.status(409).json({ error: "Username already taken" });
     }
 
-    // Update the username
-    const [result] = await pool.query("UPDATE leaderboard SET username = ? WHERE username = ?", [newUsername, oldUsername]);
+    // Update username by user ID
+    const [result] = await pool.query("UPDATE leaderboard SET username = ? WHERE id = ?", [newUsername, userId]);
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ error: "Old username not found" });
+      return res.status(404).json({ error: "User not found" });
     }
 
     res.json({ success: true, message: "Username updated" });
@@ -57,6 +57,7 @@ app.post('/update-username', async (req, res) => {
     res.status(500).json({ error: "Database error" });
   }
 });
+
 
 
 app.get('/', (req, res) => {
