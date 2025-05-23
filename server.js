@@ -86,13 +86,13 @@ app.post("/score", async (req, res) => {
 
   try {
     const query = `
-      INSERT INTO leaderboard (username, score, created_at)
-      VALUES (?, ?, NOW())
-      ON DUPLICATE KEY UPDATE
-        score = IF(VALUES(score) > score, VALUES(score), score),
-        created_at = IF(VALUES(score) > score, NOW(), created_at);
-    `;
-    await pool.query(query, [username, score]);
+  INSERT INTO leaderboard (username, score, created_at)
+  VALUES (?, ?, NOW())
+  ON DUPLICATE KEY UPDATE
+    score = IF(VALUES(score) > score, VALUES(score), score),
+    created_at = IF(VALUES(score) > score, NOW(), created_at);
+`;
+await pool.query(query, [username, score]);
 
     console.log("✅ Score saved or updated");
     res.status(200).json({ message: "Score saved or updated" });
