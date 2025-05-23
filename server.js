@@ -21,6 +21,10 @@ const dbConfig = {
   }
 };
 
+app.get('/', (req, res) => {
+  res.send('Melondog Server is running!');
+});
+
 let pool;
 
 async function initDb() {
