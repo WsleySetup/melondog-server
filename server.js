@@ -92,7 +92,7 @@ app.post("/score", async (req, res) => {
     score = IF(VALUES(score) > score, VALUES(score), score),
     created_at = IF(VALUES(score) > score, NOW(), created_at);
 `;
-await pool.query(query, [username, score]);
+await pool.query("UPDATE leaderboard SET username = ? WHERE id = ?", [newUsername, userId]);
 
     console.log("✅ Score saved or updated");
     res.status(200).json({ message: "Score saved or updated" });
