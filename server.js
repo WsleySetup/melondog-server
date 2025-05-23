@@ -8,7 +8,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// dbConfig must be defined BEFORE initDb is called
+// DB config
 const dbConfig = {
   host: 'mysql-2bbc807a-melondogdb.j.aivencloud.com',
   port: 18629,
@@ -38,7 +38,7 @@ app.post('/update-username', async (req, res) => {
   }
 
   try {
-    // Check if new username is already taken
+    // Check if new username is taken
     const [rows] = await pool.query("SELECT * FROM leaderboard WHERE username = ?", [newUsername]);
     if (rows.length > 0) {
       return res.status(409).json({ error: "Username already taken" });
@@ -58,15 +58,13 @@ app.post('/update-username', async (req, res) => {
   }
 });
 
-
-
 app.get('/', (req, res) => {
   res.send('Melondog Server is running!');
 });
 
 app.get('/leaderboard', async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT username, score, created_at FROM leaderboard ORDER BY score DESC LIMIT 10');
+    const [rows] = await pool.query('SELECT id, username, score, created_at FROM leaderboard ORDER BY score DESC LIMIT 10');
     res.json(rows);
   } catch (err) {
     console.error(err);
@@ -75,29 +73,28 @@ app.get('/leaderboard', async (req, res) => {
 });
 
 app.post("/score", async (req, res) => {
-  console.log("📥 Received score submission:", req.body);
+  const { userId, score } = req.body;
 
-  const { username, score } = req.body;
-
-  if (!username || typeof score !== "number") {
-    console.log("❌ Invalid data:", req.body);
+  if (!userId || typeof score !== "number") {
     return res.status(400).json({ error: "Invalid data" });
   }
 
   try {
     const query = `
-    INSERT INTO leaderboard (username, score, created_at)
-  VALUES (?, ?, NOW())
-  ON DUPLICATE KEY UPDATE
-    score = IF(VALUES(score) > score, VALUES(score), score),
-    created_at = IF(VALUES(score) > score, NOW(), created_at);
-`;
-await pool.query("UPDATE leaderboard SET username = ? WHERE id = ?", [newUsername, userId]);
+      UPDATE leaderboard
+      SET score = IF(? > score, ?, score),
+          created_at = IF(? > score, NOW(), created_at)
+      WHERE id = ?
+    `;
+    const [result] = await pool.query(query, [score, score, score, userId]);
 
-    console.log("✅ Score saved or updated");
-    res.status(200).json({ message: "Score saved or updated" });
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    res.status(200).json({ message: "Score updated" });
   } catch (err) {
-    console.error("❗ Error saving score:", err);
+    console.error(err);
     res.status(500).json({ error: "Database error" });
   }
 });
