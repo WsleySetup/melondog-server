@@ -38,18 +38,25 @@ app.post('/update-username', async (req, res) => {
   }
 
   try {
-    // Check if new username already exists
-    const check = await db.query("SELECT * FROM leaderboard WHERE username = $1", [newUsername]);
-    if (check.rows.length > 0) {
+    // Check if the new username already exists
+    const [checkRows] = await pool.query("SELECT * FROM leaderboard WHERE username = ?", [newUsername]);
+    if (checkRows.length > 0) {
       return res.status(409).json({ error: "Username already taken" });
     }
 
     // Update the username
-    await db.query("UPDATE leaderboard SET username = $1 WHERE username = $2", [newUsername, oldUsername]);
+    const [result] = await pool.query(
+      "UPDATE leaderboard SET username = ? WHERE username = ?",
+      [newUsername, oldUsername]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Old username not found" });
+    }
 
     res.json({ success: true, message: "Username updated" });
   } catch (err) {
-    console.error("Database error:", err);
+    console.error("❗ Database error:", err);
     res.status(500).json({ error: "Database error" });
   }
 });
