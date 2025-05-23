@@ -99,6 +99,34 @@ app.post("/score", async (req, res) => {
   }
 });
 
+app.post('/create-user', async (req, res) => {
+  const { username } = req.body;
+
+  if (!username) {
+    return res.status(400).json({ error: "Missing username" });
+  }
+
+  try {
+    // Check if username is taken
+    const [rows] = await pool.query("SELECT id FROM leaderboard WHERE username = ?", [username]);
+    if (rows.length > 0) {
+      return res.status(409).json({ error: "Username already taken" });
+    }
+
+    // Insert new user with score 0
+    const [result] = await pool.query(
+      "INSERT INTO leaderboard (username, score, created_at) VALUES (?, 0, NOW())",
+      [username]
+    );
+
+    // result.insertId is the new user's id
+    res.status(201).json({ message: "User created", userId: result.insertId });
+  } catch (err) {
+    console.error("Database error:", err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 
 initDb().then(() => {
