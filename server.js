@@ -3,7 +3,6 @@ const mysql = require('mysql2/promise');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
-const fetch = require('node-fetch'); // Or use global fetch in Node 18+
 
 const app = express();
 app.use(cors());
