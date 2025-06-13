@@ -133,3 +133,43 @@ initDb().then(() => {
   console.error('DB init error:', err);
   process.exit(1);
 });
+
+const express = require('express');
+const bodyParser = require('body-parser');
+const fetch = require('node-fetch'); // or global fetch if Node 18+
+
+const app = express();
+const PORT = 3000;
+
+const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1383214190751256596/rtcwYzXK8Y3wOm_LdbbpWOWaCJrfyofJCuTALPEeiP0BDfOWiR09ROVuddw_V-JUuJHf';
+
+app.use(bodyParser.json());
+app.use(express.static('public')); // serve your HTML from a 'public' folder
+
+app.post('/send-suggestion', async (req, res) => {
+  const { suggestion } = req.body;
+
+  if (!suggestion || suggestion.trim().length === 0) {
+    return res.status(400).send('Suggestion is required.');
+  }
+
+  try {
+    await fetch(DISCORD_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: 'Suggestion Box',
+        content: `💡 **New suggestion submitted:**\n${suggestion}`
+      })
+    });
+
+    res.send('Thanks! Your suggestion has been sent.');
+  } catch (error) {
+    console.error('Error sending to Discord:', error);
+    res.status(500).send('Failed to send suggestion.');
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`Suggestion box server running on http://localhost:${PORT}`);
+});
