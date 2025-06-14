@@ -127,43 +127,11 @@ app.put('/leaderboard/rename', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 
-
-
-
-
-app.post('/send-suggestion', async (req, res) => {
-  const { suggestion } = req.body;
-
-  if (!suggestion || suggestion.trim() === '') {
-    return res.status(400).send('Suggestion is required.');
-  }
-
-  try {
-    await fetch(DISCORD_WEBHOOK_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        username: 'Suggestion Box',
-        content: `💡 New suggestion:\n${suggestion}`
-      })
-    });
-
-    res.send('Thank you for your suggestion!');
-  } catch (error) {
-    console.error('Discord webhook error:', error); // 🔥 Look here!
-    res.status(500).send('Failed to send suggestion.');
-  }
-});
-
-
-
-initDb()
-  .then(() => {
-    app.listen(PORT, () => {
-      console.log(`Server listening on port ${PORT}`);
-    });
-  })
-  .catch((err) => {
-    console.error('DB init error:', err);
-    process.exit(1);
+initDb().then(() => {
+  app.listen(PORT, () => {
+    console.log(`Server listening on port ${PORT}`);
   });
+}).catch(err => {
+  console.error('DB init error:', err);
+  process.exit(1);
+});
