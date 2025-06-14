@@ -6,7 +6,9 @@ const path = require('path');
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json()); // Built-in JSON parser
+
+const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1383214190751256596/rtcwYzXK8Y3wOm_LdbbpWOWaCJrfyofJCuTALPEeiP0BDfOWiR09ROVuddw_V-JUuJHf';
 
 const dbConfig = {
   host: 'mysql-2bbc807a-melondogdb.j.aivencloud.com',
@@ -125,11 +127,43 @@ app.put('/leaderboard/rename', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 
-initDb().then(() => {
-  app.listen(PORT, () => {
-    console.log(`Server listening on port ${PORT}`);
-  });
-}).catch(err => {
-  console.error('DB init error:', err);
-  process.exit(1);
+
+
+
+
+app.post('/send-suggestion', async (req, res) => {
+  const { suggestion } = req.body;
+
+  if (!suggestion || suggestion.trim() === '') {
+    return res.status(400).send('Suggestion is required.');
+  }
+
+  try {
+    await fetch(DISCORD_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: 'Suggestion Box',
+        content: `💡 New suggestion:\n${suggestion}`
+      })
+    });
+
+    res.send('Thank you for your suggestion!');
+  } catch (error) {
+    console.error('Discord webhook error:', error); // 🔥 Look here!
+    res.status(500).send('Failed to send suggestion.');
+  }
 });
+
+
+
+initDb()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`Server listening on port ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error('DB init error:', err);
+    process.exit(1);
+  });
