@@ -3,6 +3,7 @@ const mysql = require('mysql2/promise');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const fetch = require('node-fetch'); // add this at top with your requires
 
 const app = express();
 app.use(cors());
@@ -21,6 +22,31 @@ const dbConfig = {
     rejectUnauthorized: true,
   }
 };
+
+app.post('/send-suggestion', async (req, res) => {
+  const { suggestion } = req.body;
+
+  if (!suggestion || suggestion.trim() === '') {
+    return res.status(400).json({ error: 'Suggestion is required.' });
+  }
+
+  try {
+    await fetch(DISCORD_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: 'Suggestion Box',
+        content: `💡 New suggestion:\n${suggestion}`
+      }),
+    });
+
+    res.status(200).json({ message: 'Thank you for your suggestion!' });
+  } catch (error) {
+    console.error('Discord webhook error:', error);
+    res.status(500).json({ error: 'Failed to send suggestion.' });
+  }
+});
+
 
 let pool;
 
